@@ -199,7 +199,10 @@
 
         // ✅ Ganti dengan API Key milikmu dari newsapi.org
         const API_KEY = "8ff42d2058a04b35bb3bc94ff9b72ef7";
- const PROXY = "https://api.allorigins.win/get?url=";
+        const PROXY = "https://api.allorigins.win/get?url=";
+        function fetchNews(query) {
+                const newsApiUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&sortBy=publishedAt&apiKey=${API_KEY}&language=id`;
+                
         async function fetchNews(query) {
           loader.style.display = "block";
           newsCards.innerHTML = "";
@@ -315,4 +318,5 @@
       });
     </script>
   </body>
+
 </html>
