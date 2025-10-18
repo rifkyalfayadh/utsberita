@@ -190,133 +190,109 @@
 
     <!-- MAIN SCRIPT -->
     <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const searchForm = document.getElementById("searchForm");
-        const queryInput = document.getElementById("query");
-        const newsCards = document.getElementById("newsCards");
-        const alertBox = document.getElementById("alertBox");
-        const loader = document.getElementById("loader");
+      $(function() {
+            const $searchForm = $('#searchForm');
+            const $queryInput = $('#query');
+            const $newsCards = $('#newsCards');
+            const $alertBox = $('#alertBox');
+            const $loader = $('#loader');
+            const $categoryLinks = $('.category-link');
 
         // ✅ Ganti dengan API Key milikmu dari newsapi.org
         const API_KEY = "8ff42d2058a04b35bb3bc94ff9b72ef7";
         const PROXY = "https://api.allorigins.win/get?url=";
-        function fetchNews(query) {
+         function fetchNews(query) {
                 const newsApiUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&sortBy=publishedAt&apiKey=${API_KEY}&language=id`;
                 
-        async function fetchNews(query) {
-          loader.style.display = "block";
-          newsCards.innerHTML = "";
-          alertBox.innerHTML = "";
+                $.ajax({
+                    url: PROXY + encodeURIComponent(newsApiUrl), 
+                    method: 'GET',
+                    beforeSend: function() {
+                        $loader.show();
+                        $newsCards.empty();
+                        $alertBox.empty();
+                    },
+                    success: function(proxyResponse) {
+                        const data = JSON.parse(proxyResponse.contents); 
 
-          const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(
-            query
-          )}&sortBy=publishedAt&apiKey=${API_KEY}&language=id`;
-
-          try {
-            const response = await fetch(url);
-            if (!response.ok)
-              throw new Error(`HTTP error! status: ${response.status}`);
-            const data = await response.json();
-
-            if (data.status === "error") {
-              displayError(data.message);
-            } else if (!data.articles || data.articles.length === 0) {
-              displayError(
-                `Tidak ada berita yang cocok untuk kata kunci "${query}".`
-              );
-            } else {
-              displayNews(data.articles);
+                        if (data.status === 'error') {
+                            displayError(data.message);
+                        } else if (!data.articles || data.articles.length === 0) {
+                            displayError(`Tidak ada berita yang cocok untuk kata kunci pencarian "${query}".`);
+                        } else {
+                            displayNews(data.articles);
+                        }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.error('AJAX Error:', textStatus, errorThrown);
+                        displayError('Gagal mengambil data berita. Silakan coba lagi nanti.');
+                    },
+                    complete: function() {
+                        $loader.hide();
+                    }
+                });
             }
-          } catch (error) {
-            console.error("Fetch Error:", error);
-            displayError(
-              "Gagal mengambil data berita. Periksa koneksi internet atau API Key Anda."
-            );
-          } finally {
-            loader.style.display = "none";
-          }
-        }
 
-        function displayError(message) {
-          alertBox.innerHTML = `<div class="alert alert-warning text-center">${message}</div>`;
-        }
+            function displayError(message) {
+                $alertBox.html(`<div class="alert alert-warning text-center">${message}</div>`);
+            }
 
-        function displayNews(articles) {
-          newsCards.innerHTML = "";
+            function displayNews(articles) {
+                $newsCards.empty();
+                
+                $.each(articles, function(index, article) {
+                    if (!article.title || !article.description || article.title === "[Removed]") {
+                        return true;
+                    }
 
-          articles.forEach((article) => {
-            if (
-              !article.title ||
-              !article.description ||
-              article.title === "[Removed]"
-            )
-              return;
+                    const formattedDate = new Date(article.publishedAt).toLocaleDateString('id-ID', { 
+                        day: 'numeric', month: 'long', year: 'numeric' 
+                    });
+                    
+                    const imageUrl = article.urlToImage || 'https://via.placeholder.com/400x220.png?text=Gambar+Tidak+Tersedia';
 
-            const newsCardHTML = `
-                        <div class="col-md-6 col-lg-4 mb-4">
+                    const newsCardHTML = `
+                        <div class="col-md-6 col-lg-4 mb-4 d-flex align-items-stretch">
                             <div class="card h-100 shadow-sm rounded-4 overflow-hidden">
-                                <img src="${
-                                  article.urlToImage ||
-                                  "https://via.placeholder.com/400x220.png?text=Gambar+Tidak+Tersedia"
-                                }" class="card-img-top" alt="Gambar berita">
+                                <img src="${imageUrl}" class="card-img-top" alt="Gambar berita">
                                 <div class="card-body d-flex flex-column">
                                     <h5 class="card-title">${article.title}</h5>
-                                    <p class="card-text text-muted small">${article.description.substring(
-                                      0,
-                                      100
-                                    )}...</p>
-                                    <a href="${
-                                      article.url
-                                    }" target="_blank" class="btn btn-primary mt-auto fw-bold rounded-pill px-4">Baca Selengkapnya</a>
+                                    <p class="card-text text-muted small">${article.description.substring(0, 80)}...</p>
+                                    <a href="${article.url}" target="_blank" class="btn btn-primary btn-sm mt-auto fw-bold rounded-pill px-3">Baca Selengkapnya</a>
                                 </div>
-                                <div class="card-footer bg-transparent border-top">
+                                <div class="card-footer bg-white border-top-0">
                                     <small class="text-muted">
-                                        <strong>${
-                                          article.source.name ||
-                                          "Sumber tidak diketahui"
-                                        }</strong> - 
-                                        ${new Date(
-                                          article.publishedAt
-                                        ).toLocaleDateString("id-ID", {
-                                          day: "numeric",
-                                          month: "long",
-                                          year: "numeric",
-                                        })}
+                                        <strong>${article.source.name || 'Sumber tidak diketahui'}</strong> - ${formattedDate}
                                     </small>
                                 </div>
                             </div>
                         </div>
-                    `;
-            newsCards.innerHTML += newsCardHTML;
-          });
-        }
+                    `; 
+                    $newsCards.append(newsCardHTML);
+                });
+            }
 
-        searchForm.addEventListener("submit", (e) => {
-          e.preventDefault();
-          const query = queryInput.value.trim();
-          if (query) {
-            fetchNews(query);
-          } else {
-            displayError("Silakan masukkan kata kunci pencarian.");
-          }
+            $searchForm.on('submit', function(e) {
+                e.preventDefault();
+                const query = $queryInput.val().trim();
+                if (query) {
+                    fetchNews(query);
+                } else {
+                    displayError("Silakan masukkan kata kunci pencarian.");
+                }
+            });
+            
+            $categoryLinks.on('click', function(e) {
+                e.preventDefault();
+                const category = $(this).data('category');
+                $queryInput.val('');
+                fetchNews(category);
+            });
+
+            fetchNews('Indonesia terkini');
         });
-
-        // ✅ jQuery Event untuk klik kategori navbar
-        $(".category-link").on("click", function (e) {
-          e.preventDefault();
-          const category = $(this).data("category");
-          $("#query").val(category);
-          $("#searchButton").click();
-          $("html, body").animate(
-            { scrollTop: $("#newsCards").offset().top - 70 },
-            600
-          );
-        });
-
-        // Muat berita default
-        fetchNews("berita");
-      });
     </script>
   </body>
 
 </html>
+
